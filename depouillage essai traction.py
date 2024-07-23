@@ -752,7 +752,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         else:
             description_echantillon= description_echantillon[i]
         if description_echantillon =='':
-            
+            description_echantillon = donnee[0][2]
             
         donnee_géométrie = donnee[1:j]
         donnee = donnee[j+1:]
