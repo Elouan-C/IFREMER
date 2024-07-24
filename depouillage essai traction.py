@@ -40,6 +40,102 @@ def lire_csv_sans_lib(nom_fichier):
             donnees.append(elements)
     return donnees
 
+def lire_parametres(nom_fichier_para):
+    list_true = ["True","true","Yes","yes","Oui","oui"]
+    list_false= ["False","false","No","no","Non","non"]
+    para = []
+    para_final = []
+    with open(nom_fichier_para, 'r') as fichier:
+        n_ligne = 0
+        for ligne in fichier:
+            # Supprime les espaces en début et fin de ligne et les sauts de ligne
+            ligne = ligne.strip()
+            if ligne != "":
+                # Sépare la ligne en utilisant la virgule comme séparateur
+                elements = ligne.split(':')
+                # Ajoute la liste d'éléments à la liste principale
+                para.append(elements)
+            else:
+                para.append(ligne)
+            n_ligne+=1
+
+    i = 0
+    noms_csv = []
+    while para[i] != '':
+        #print(para[i])
+        noms_csv.append(":".join(para[i]))
+        i+=1
+        
+        
+    i+=1
+    while i < n_ligne:
+        #print("para[i]:",para[i])
+        donnée = para[i][1].split(';')
+        #print("donnée",donnée)
+        #print("len(donnée)",len(donnée))
+        for j in range(len(donnée)):
+
+            for true in list_true:#On transforme les charatère en valeur booléenne True ou False et on prend en compte différentes écritture possible
+                if true in str(donnée[j]):
+                    donnée[j] = True
+            for false in list_false:
+                if false in str(donnée[j]):
+                    donnée[j] = False
+            if '[]'  in str(donnée[j]):
+                donnée[j] = []
+            elif '[' in str(donnée[j]): #On recréer les liste de liste
+                liste = donnée[j].split('[')[1]
+                liste = liste.split(']')[0]
+                liste = liste.split(',')
+                for k in range(len(liste)):
+                    if str_is_numeric(liste[k]):
+                        liste[k] = converti_en_chiffre(liste[k])
+                donnée[j] = liste
+            if str_is_numeric(donnée[j]):# on convertie les string en chiffre
+                donnée[j] = converti_en_chiffre(donnée[j])
+            elif type(donnée[j]) == str:
+                if '\\n' in donnée[j]:
+                    print(donnée[j])
+                    donnée[j] = donnée[j].replace('\\n', '\n')
+
+        
+            
+        
+        if len(donnée) == 1:
+            donnée = donnée[0]
+            
+        para_final.append([para[i][0],donnée])
+        i+=1
+
+    #print("noms_csv",noms_csv)
+    para_reformater = []
+    noms_csv_reformater = []
+    for i in range(len(para_final)):
+        para_reformater +=para_final[i]
+    for i in range(len(noms_csv)):
+        noms_csv_reformater += noms_csv[i]
+    return noms_csv, para_reformater
+
+def str_is_numeric(string):
+    try:
+        string = string.replace(' ', '')
+        string = string.replace('.', '')
+        string = string.replace(',', '')
+        return string.isnumeric()
+    except:
+        return False
+
+def converti_en_chiffre(string):
+    if str_is_numeric(string):
+        string = string.replace(' ', '')
+        if '.' in str(string):
+            return float(string)
+        else:
+            return int(string)
+    else:
+        return "ERROR"
+        
+
 def commencer_à_0_MPA(liste_deplacement, liste_contrainte, longueur_initiale=100, zéro=0):
     deplacement = np.array(liste_deplacement)
     contrainte = np.array(liste_contrainte)
@@ -137,7 +233,7 @@ def calcule_Rp02(liste_contrainte, liste_deformation, module_d_Young):
             rp02=cnt[i]
             return eps[i], rp02
 """
-def calcule_Rp02_sans_E(liste_contrainte, liste_deformation, contrainte_max,Rp=0.2):
+def calcule_Rp02_sans_E(liste_contrainte, liste_deformation, contrainte_max,Rp=0.2,calcule_de="E"):
     
     cnt=liste_contrainte
     eps=liste_deformation
@@ -169,7 +265,12 @@ def calcule_Rp02_sans_E(liste_contrainte, liste_deformation, contrainte_max,Rp=0
                 #print("valmax_trouver")
     E = ( valmax[1] - valmin[1] ) / ( valmax[0] - valmin[0] ) *100
 
-    eps02, cnt02 = calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=Rp)
+    #print("E ou K",E)
+    #print("Rp",Rp)
+    #print("liste_contrainte:",np.array(liste_contrainte))
+    #print("liste_deformation:",np.array(liste_deformation))
+
+    eps02, cnt02 = calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=Rp,calcule_de=calcule_de)
     return eps02, cnt02, E
     """
     for i in range(len(liste_contrainte)):
@@ -185,10 +286,13 @@ def calcule_Rp02_sans_E(liste_contrainte, liste_deformation, contrainte_max,Rp=0
         elif cnt[i] == cnt02:
             return eps[i] , cnt[i]
     """
-def calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=0.2): #def en %, cnt en MPa, E en MPa, RP en %
+def calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=0.2,calcule_de="E"): #def en %, cnt en MPa, E en MPa, RP en %
     cnt=liste_contrainte
     eps=liste_deformation
-    E /= 100 
+    E = (E/100)
+    Rp = float(Rp)
+    #print("len(liste_contrainte)",len(liste_contrainte))
+    
     for i in range(len(liste_contrainte)):
         cnt02 = E*eps[i] - E*Rp
         if cnt[i] < cnt02:
@@ -198,9 +302,15 @@ def calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=0.2): #def en %
             P22 = [eps[i] , cnt[i]]
 
             eps02, cnt02 = intersection_droites( P11, P12, P21, P22)
+
+            #print("eps02, cnt02",eps02, cnt02)
             return eps02, cnt02
         elif cnt[i] == cnt02:
+            #print("eps[i] , cnt[i]",eps[i] , cnt[i])
             return eps[i] , cnt[i]
+        else:
+            print("/!\\ calcule_Rp02_avec_E pas réaliser,la valeur de",calcule_de,"est fausse /!\\")
+            return 0,0 
 
 def calcule_Rp02_adaptatif(liste_contrainte, liste_deformation,Rp=0.2,force_moyenne=15,seuille_linéarité=10,debug=False): #def en %, cnt en MPa, en MPa, RP en %, seuille_linéarité en %
     #on decale la deformation quand elle est stabiliser
@@ -559,10 +669,12 @@ def calculer_deformation(list_deplacement, L0):# en mm,  L0 est la longeur initi
         
         
 def extraire_nom_du_csv(nom_csv):
+    #print("nom_csv",nom_csv)
     nom_csv = nom_csv.split("/")
     nom_csv = nom_csv[-1]
     nom_csv = nom_csv.split(".")
     nom = nom_csv[0]
+    
     return str(nom)
 
 def moyenne_courbe(list_X, list_Y, degré_d_extrapolation=0): #list_X = [ [x11,x12,x13,...],[x21,x22,x23,...],[x31,x32,x33,...] ], degré_d_extrapolation (%) 
@@ -643,7 +755,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
     #for style in plt.style.available:
         #print("style:",style)
     """
-    
+
+    #print("Nom_csv",Nom_csv)
     window_size = ['', '', '', '']
     fig, ax = plt.subplots()
     if type(Nom_csv) == list:
@@ -658,6 +771,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         else:
             nom_csv = Nom_csv
             parametres = Parametres
+        nom_csv = Nom_csv[i]
+        parametres = Parametres[i]
         nom_echantillon = extraire_nom_du_csv(nom_csv)
 
         print("\n\n============---",nom_echantillon,"---============\n")
@@ -678,7 +793,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         affich_rp02 = val_para[9]
         mode_affichage_courbe = val_para[10]
         mettre_fleche = val_para[11]
-        titre = val_para[12]
+        titre = str(val_para[12])
         bas_arondi = val_para[13]
         aff_moy_cnt_max = val_para[14]
         montrer_N_échantillon = val_para[15]
@@ -748,11 +863,16 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             j+=1
 
         if i> len(description_echantillon):
-            description_echantillon = ''
+            description_echantillon = donnee[0][2]
         else:
             description_echantillon= description_echantillon[i]
-        if description_echantillon =='':
-            description_echantillon = donnee[0][2]
+
+        description_ech_pousser = False
+        if description_echantillon[-1] == '¤':
+            description_echantillon = description_echantillon[:-1]
+            description_ech_pousser= True
+            info_sup = []
+       
             
         donnee_géométrie = donnee[1:j]
         donnee = donnee[j+1:]
@@ -867,7 +987,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         list_rp02 = []
         l_rp02 = []
         ep_rp02 = []
-        list_E = []
+        list_E = [] #liste des Module d'Young en N/mm² (MPa)
+        list_K = [] #liste des raideurs en N/mm
         
         
         """
@@ -925,26 +1046,6 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     List_Y.append(Y)
 
                     
-                    if (nom_echantillon_déja_montrer==False) and mode_affichage_courbe != 3:
-                        nom = []
-                        if montrer_N_échantillon == 1:
-                            nom.append( ''.join(['ech n°',nom_echantillon]) )
-                        if montrer_description_échantillon:
-                            nom.append( ''.join(['',description_echantillon]))
-                        nom = ', '.join(nom)
-                        if montrer_N_échantillon or montrer_description_échantillon:
-                            nom_echantillon_déja_montrer = True
-                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
-                            
-                    if montrer_N_eprouvette==1:
-                        nom = ''.join([nom_echantillon,'-',str(ep+1)])
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
-                    elif montrer_N_eprouvette==2:
-                        ligne_entete = 3+ep
-                        nom = donnee[ligne_entete][1]
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
-                    else:
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur)
                         
                     cnt_max=Point_Y_max(deformation,contrainte)
                     for_max=Point_Y_max(deplacement,liste_force[ep-ep_sauter])
@@ -987,6 +1088,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         print("E ISO 527",E_ISO_527)
                         print("E_adaptatif",E_adaptatif)
                         print("E (Rp0.2)",E)
+                        print("for_max[1]",for_max[1])
+
+                        
+                    dep02, rpf02, K =calcule_Rp02_sans_E(deplacement, liste_force[ep-ep_sauter], for_max[1], Rp=Rp, calcule_de='K')
+                    
+                    list_K.append(K/100)
                     #determinasion de la taille de la fenetre d'affichage:
                     X = X.tolist() #conversion du numpy array en list
                     Y = Y.tolist()
@@ -1004,7 +1111,32 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         window_size[1] = X[Y.index(max(Y))]
 
                     
-                    
+                    #AFFICHAGE DE LA COURBE LIER A L'EPROUVETTE
+                    if (nom_echantillon_déja_montrer==False) and mode_affichage_courbe != 3:
+                        nom = []
+                        if montrer_N_échantillon == 1:
+                            nom.append( ''.join(['ech n°',nom_echantillon]) )
+                        """
+                        if montrer_description_échantillon:
+                            nom.append( ''.join(['',description_echantillon]))
+                        """
+                        nom = ', '.join(nom)
+                        
+                        if montrer_N_échantillon :#or montrer_description_échantillon:
+                            nom_echantillon_déja_montrer = True
+                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
+                        
+                        montrer_description_échantillon
+                            
+                    if montrer_N_eprouvette==1:
+                        nom = ''.join([nom_echantillon,'-',str(ep+1)])
+                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
+                    elif montrer_N_eprouvette==2:
+                        ligne_entete = 3+ep
+                        nom = donnee[ligne_entete][1]
+                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
+                    else:
+                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur)
 
                     
                     #on met dans le rapport les élément de l'entete qui nous interesse
@@ -1034,8 +1166,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         nom = []
                         if montrer_N_échantillon :
                             nom.append( ''.join(['ech n°',nom_echantillon]) )
-                        if montrer_description_échantillon:
-                            nom.append( ''.join(['',description_echantillon]))
+                        """if montrer_description_échantillon:
+                            nom.append( ''.join(['',description_echantillon]))"""
                         nom = ', '.join(nom)
                         plt.plot(cnt_max[0],cnt_max[1], '+', color = cross_palette[l],label=nom)
                     else:
@@ -1096,6 +1228,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         export_data.append(['Mediane de la contrainte max',statistics.median(list_cnt_max)])
 
         if force_depla == False: # Contrainte/Déformation
+            txt = ''.join([r"$\sigma_{max}$ ∈ [",str(round(moyenne_contrainte_max-2*ecart_type_contrainte_max, nb_ar))," ; ",str(round(moyenne_contrainte_max+2*ecart_type_contrainte_max, nb_ar)),'] à 95%'])
             if affich_cnt_max == True:
                 #affichage moyenne contrainte maxaff_moy_cnt_max
                 if mettre_fleche== True:
@@ -1106,7 +1239,6 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     x_txt = moyenne_deformation_contrainte_max + b*X_taille_fleche/100
                     y_txt = moyenne_contrainte_max + h*Y_taille_fleche/100
                     
-                    txt = ''.join([r"$\sigma_{max}$ ∈ [",str(round(moyenne_contrainte_max-2*ecart_type_contrainte_max, nb_ar))," ; ",str(round(moyenne_contrainte_max+2*ecart_type_contrainte_max, nb_ar)),'] à 95%'])
                     plt.text(x_txt, y_txt, txt)
                     p1 = patches.FancyArrowPatch( (moyenne_deformation_contrainte_max, moyenne_contrainte_max), (x_txt, y_txt),arrowstyle='<-', mutation_scale=20)
                     plt.gca().add_patch(p1)
@@ -1133,6 +1265,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     window_size[2] = y_min
                 if (window_size[3] == '') or (y_max > window_size[3]):
                     window_size[3] = y_max
+
+            if description_ech_pousser:
+                info_sup.append(txt)
                 
         # moyenne Rp0.2
         if len(l_rp02) >= 2:
@@ -1144,6 +1279,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             moyenne_E = statistics.mean(list_E)
             ecart_type_E = statistics.stdev(list_E)
+
+            moyenne_K = statistics.mean(list_K)
+            ecart_type_K = statistics.stdev(list_K)
         else:
             moyenne_rp02= l_rp02[0]
             ecart_type_rp02 = 0
@@ -1153,6 +1291,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             moyenne_E = list_E[0]
             ecart_type_E = 0
+
+            moyenne_K = list_K[0]
+            ecart_type_K = 0
 
         nb_ar=2
 
@@ -1176,6 +1317,21 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         print("Dans   95% des cas E ∈",[round(moyenne_E-2*ecart_type_E, nb_ar) , round(moyenne_E+2*ecart_type_E, nb_ar)],"MPa")
         print("Dans 99.7% des cas E ∈",[round(moyenne_E-3*ecart_type_E, nb_ar) , round(moyenne_E+3*ecart_type_E, nb_ar)],"MPa")
 
+        print("\n            ===\n")
+        print("médiane des K:",statistics.median(list_K))
+        print("")
+        print("moyenne K:",moyenne_K)
+        print("ecart_type_K:",ecart_type_K)
+        print("")
+        print("Dans   68% des cas K ∈",[round(moyenne_K-ecart_type_K, nb_ar) , round(moyenne_K+ecart_type_K, nb_ar)],"kN/mm")
+        print("Dans   95% des cas K ∈",[round(moyenne_K-2*ecart_type_K, nb_ar) , round(moyenne_K+2*ecart_type_K, nb_ar)],"kN/mm")
+        print("Dans 99.7% des cas K ∈",[round(moyenne_K-3*ecart_type_K, nb_ar) , round(moyenne_K+3*ecart_type_K, nb_ar)],"kN/mm")
+
+        if description_ech_pousser and force_depla == False:
+            info_sup.append( ''.join(["E ∈ [",str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%']) )
+        if description_ech_pousser and force_depla == True:
+            info_sup.append( ''.join(["K ∈ [",str(round(moyenne_K-2*ecart_type_K, nb_ar))," ; ",str(round(moyenne_K+2*ecart_type_K, nb_ar)),'] à 95%']) )
+            
 
         export_data.append([''])
         export_data.append(["Moyenne des Rp0.2",moyenne_rp02])
@@ -1187,8 +1343,10 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         export_data.append(['Mediane du Rp0.2',statistics.median(l_rp02)])
 
         if force_depla == False: # Contrainte/Déformation
+            txt = ''.join([" \n$Rp_{{{}}}$ ∈ [".format(Rp),str(round(moyenne_rp02-2*ecart_type_rp02, nb_ar))," ; ",str(round(moyenne_rp02+2*ecart_type_rp02, nb_ar)),'] à 95%'])#\n(E ∈ [',str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%)'])
+            txt2 = ''.join(["$Rp_{{{}}}$ ∈ [".format(Rp),str(round(moyenne_rp02-2*ecart_type_rp02, nb_ar))," ; ",str(round(moyenne_rp02+2*ecart_type_rp02, nb_ar)),'] à 95%'])#\n(E ∈ [',str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%)'])
             if affich_rp02 == True:
-            #affichage moyenne Rp0.2
+                #affichage moyenne Rp0.2
                 if mettre_fleche== True:
                     x_txt = moyenne_deformation_rp02*1 + 7*ecart_type_deformation_rp02
                     y_txt = moyenne_rp02*1 - 3*ecart_type_rp02
@@ -1197,8 +1355,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     x_txt = moyenne_deformation_rp02 + b*X_taille_fleche/100
                     y_txt = moyenne_rp02 + h*Y_taille_fleche/100
                     
-                    txt = ''.join([" \n$Rp_{{{}}}$ ∈ [".format(Rp)
-                                   ,str(round(moyenne_rp02-2*ecart_type_rp02, nb_ar))," ; ",str(round(moyenne_rp02+2*ecart_type_rp02, nb_ar)),'] à 95%'])#\n(E ∈ [',str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%)'])
+                    
+                                   
                     plt.text(x_txt, y_txt, txt)
                     p1 = patches.FancyArrowPatch( (moyenne_deformation_rp02, moyenne_rp02), (x_txt, y_txt),arrowstyle='<-', mutation_scale=20)
                     plt.gca().add_patch(p1)
@@ -1208,7 +1366,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                 yerr = [ecart_type_rp02*n]#, ecart_type_contrainte_max*n]
                 plt.errorbar([moyenne_deformation_rp02], [moyenne_rp02], xerr=xerr, yerr=yerr, capsize=3, fmt="o", ecolor = cross_palette[l], color = cross_palette[l],label = "moyenne des Rp0.2 avec\nun intervale de confiance à 95%")
 
-
+            if description_ech_pousser:
+                info_sup.append(txt2)
+        
 
         
         
@@ -1236,9 +1396,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         print("moyenne Fmax:", moyenne_fmax)
         print(" ecart_type_fmax:", ecart_type_fmax)
         print("")
-        print("Dans   68% des cas Fmax ∈",[round(moyenne_fmax-ecart_type_fmax, nb_ar) , round(moyenne_fmax+ecart_type_fmax, nb_ar)],"MPa")
-        print("Dans   95% des cas Fmax ∈",[round(moyenne_fmax-2*ecart_type_fmax, nb_ar) , round(moyenne_fmax+2*ecart_type_fmax, nb_ar)],"MPa")
-        print("Dans 99.7% des cas Fmax ∈",[round(moyenne_fmax-3*ecart_type_fmax, nb_ar) , round(moyenne_fmax+3*ecart_type_fmax, nb_ar)],"MPa")
+        print("Dans   68% des cas Fmax ∈",[round(moyenne_fmax-ecart_type_fmax, nb_ar) , round(moyenne_fmax+ecart_type_fmax, nb_ar)],"kN")
+        print("Dans   95% des cas Fmax ∈",[round(moyenne_fmax-2*ecart_type_fmax, nb_ar) , round(moyenne_fmax+2*ecart_type_fmax, nb_ar)],"kN")
+        print("Dans 99.7% des cas Fmax ∈",[round(moyenne_fmax-3*ecart_type_fmax, nb_ar) , round(moyenne_fmax+3*ecart_type_fmax, nb_ar)],"kN")
 
 
         export_data.append([''])
@@ -1250,14 +1410,19 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         export_data.append([''])
         export_data.append(['Mediane du Fmax',statistics.median(list_for_max)])
 
+        if description_ech_pousser and force_depla == True:
+            info_sup.append( ''.join(["Fmax ∈ [",str(round(moyenne_fmax-2*ecart_type_fmax, nb_ar))," ; ",str(round(moyenne_fmax+2*ecart_type_fmax, nb_ar)),'] à 95%']) )
+
+
         if force_depla == True: # Contrainte/Déformation
             #affichage moyenne Rp0.2
+            txt = ''.join([" \n$Rp_{{{}}}$ ∈ [".format(Rp),str(round(moyenne_rp02-2*ecart_type_rp02, nb_ar))," ; ",str(round(moyenne_rp02+2*ecart_type_rp02, nb_ar)),'] à 95%'])#\n(E ∈ [',str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%)'])
             if affich_rp02 == True:
                 if mettre_fleche== True:
                     x_txt = moyenne_deformation_rp02*1 + 7*ecart_type_deformation_rp02
                     y_txt = moyenne_rp02*1 - 3*ecart_type_rp02
-                    txt = ''.join([" \n$Rp_{{{}}}$ ∈ [".format(Rp)
-                                   ,str(round(moyenne_rp02-2*ecart_type_rp02, nb_ar))," ; ",str(round(moyenne_rp02+2*ecart_type_rp02, nb_ar)),'] à 95%'])#\n(E ∈ [',str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%)'])
+                    
+                                   
                     plt.text(x_txt, y_txt, txt)
                     p1 = patches.FancyArrowPatch( (moyenne_deformation_rp02, moyenne_rp02), (x_txt, y_txt),arrowstyle='<-', mutation_scale=20)
                     plt.gca().add_patch(p1)
@@ -1267,10 +1432,19 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                 yerr = [ecart_type_rp02*n]#, ecart_type_contrainte_max*n]
                 plt.errorbar([moyenne_deformation_rp02], [moyenne_rp02], xerr=xerr, yerr=yerr, capsize=3, fmt="o", ecolor = cross_palette[l], color = cross_palette[l],label = "moyenne des Rp0.2 avec\nun intervale de confiance à 95%")
 
+
+        if montrer_description_échantillon:
+            if description_ech_pousser:
+                description_echantillon = [description_echantillon] + info_sup
+                description_echantillon = '\n'.join(description_echantillon)
+            plt.plot(moy_X[0], moy_Y[0], color=couleur, linestyle=style_moy, linewidth=largeur_moy, label=description_echantillon)
+                    
         export_data.append([''])
         export_data += list_export_courbe_moyenne #rajout de la courbe moyenne
         ecrire_liste_dans_csv(export_data,"test.csv")
 
+
+        
             
 
     #rajout d'une marge sur la fenetre d'affichage
@@ -1456,12 +1630,12 @@ nom_csv = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/essais 1
          
 nom_csv=["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-11-220724.csv",
          "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-12-220724.csv"]
-"""
+
 nom_csv=["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-13-230724.csv",
          "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-3-050724.csv",
          "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-4-050724.csv"]
-"""
 
+nom_csv = ["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/essais 10-07-2024 pour laurent/EP5-100724.csv"]
 
 
 
@@ -1471,9 +1645,9 @@ parametres=['montrer n° eprouvette', 0,
             'Rp', 0.2,
             'montrer_que_certaines_eprouvettes', [[1],[],[],[],[],[],[]],
             'Longueur_éprouvette (obsolete)', 115,
-            'debug',False,
+            'debug',True,
             'montrer dériver',False,
-            'Force/déplacement',False,
+            'Force/déplacement',True,
             'afficher contrainte max',True,
             'afficher Rp02',False,
             'mode affichage courbe [1,2,3,4]',2,
@@ -1487,6 +1661,11 @@ parametres=['montrer n° eprouvette', 0,
                                        'Eprouvette 60° imprimer à 230°¤'],
             'afficher courbe moyenne',False,]
 
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
+
+nom_csv, parametres=lire_parametres(nom_para)
+#print("nom_csv",nom_csv)
 para = parametres_identiques(parametres,nom_csv)
 depouiller_essais_traction_simple(nom_csv,para)
 
@@ -1505,6 +1684,18 @@ depouiller_essais_traction_simple(nom_csv,para)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+"""
 
 parametres=['montrer n° eprouvette', 0,
             'Deplacer les deformation en 0', True,
@@ -1528,5 +1719,5 @@ parametres=['montrer n° eprouvette', 0,
                                        'PETG Vierge Daily sun'],
             'afficher courbe moyenne',True,]
 
-
+"""
 
