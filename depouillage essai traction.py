@@ -393,7 +393,8 @@ def calcule_Rp02_adaptatif(liste_contrainte, liste_deformation,Rp=0.2,force_moye
             return eps02, cnt02
         elif cnt[i] == cnt02:
             return eps[i] , cnt[i]
-     
+#def Calcule_point_inflection(X,Y,force_moyennage=15):
+    
 def extraire_donee_par_eprouvettes(donnee, nb_eprouvette,taille_entete):
     liste_deplacement = []
     liste_force = []
@@ -738,7 +739,76 @@ def plot_to_csv(list_x, list_y):
     for i in range(len(arr)):
         arr[i] = list(arr[i])
     return arr
+
+def dériver_brut(X,Y):
+    dX = X[:-1]
+    dY=[]
+    for i in range(len(Y2)-1):
+        dY.append((Y[i+1] - Y[i]) /(X[i+1] - X2i]))
+    return(dX, dY)
+    
         
+def trouver_point_inflection(X,Y,force_moyenne=15):
+    points_inflections = []
+    pente_au_points_inflection = []
+
+    dX, dY = dériver_brut(X,Y)#dériver 1ere
+    dX_moy, dY_moy = moyenner_courbe(dX, dY, force=force_moyenne)
+
+    ddX, ddY = dériver_brut(dX_moy, dY_moy)# dériver seconde
+    ddX_moy, ddY_moy = moyenner_courbe(ddX, ddY, force=force_moyenne)
+    
+    val_prec = ddY_moy[0]
+    for i in range(len(ddY_moy)-1): #On cherche la valeur en X des points d'inflections
+        if ddy_moy[i] == 0:
+            points_inflections.append([ddX_moy])
+        elif math.copysign(1, ddY_moy[i]) != math.copysign(1, ddY_moy[i+1]): #test si les signes des deux valeurs sont différents
+            A = (ddX_moy[i],ddY_moy[i]))
+            B = (ddX_moy[i+1],ddY_moy[i+1]))
+            ddX0=interpolation( A,B,0)
+            points_inflections.append([ddX0])
+
+    num_pnt_inflection = 0
+    i=0
+    while num_pnt_inflection < len(points_inflections): #On cherche la valeur en Y des points d'inflections
+        x_infl = points_inflections[num_pnt_inflection][0]
+        if X[i] == x_infl:
+            points_inflections[num_pnt_inflection].append(Y[i])
+            num_pnt_inflection += 1
+            
+        elif: (X[i] < x_infl) and (X[i+1] > x_infl):
+            A = (Y[i],X[i]))
+            B = (Y[i+1],X[i+1]))
+            y_infl=interpolation( A,B,x_infl)
+            points_inflections[num_pnt_inflection].append(y_infl)
+            num_pnt_inflection += 1
+        i+=1
+
+    num_pnt_inflection = 0
+    i=0
+    while num_pnt_inflection < len(points_inflections): #On cherche la valeur de la pente(dy) au niveau des points d'inflections
+        x_infl = points_inflections[num_pnt_inflection][0]
+        if dX_moy[i] == x_infl:
+            pente_au_points_inflection.append(dY_moy[i])
+            num_pnt_inflection += 1
+            
+        elif: (dX_moy[i] < x_infl) and (dX_moy[i+1] > x_infl):
+            A = (dY_moy[i],dX_moy[i]))
+            B = (dY_moy[i+1],dX_moy[i+1]))
+            y_infl=interpolation( A,B,x_infl)
+            points_inflections.append(y_infl)
+            num_pnt_inflection += 1
+        i+=1
+            
+    return points_inflections #liste [[X,Y,pente], [],...]
+        
+def recallage_donner_par_point_inflection(X,Y):
+    points_inflections = trouver_point_inflection(X,Y)
+
+    premier_point_infl = points_inflections[0][:2] #on prend les deux première valeurs (X et Y)
+    pente_premier_infl = points_inflections[0][2]
+    
+    
 def depouiller_essais_traction_simple(Nom_csv, Parametres):
     """
     #création de la palette de couleurs utiliser dans les graphique
@@ -815,6 +885,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             montrer_N_eprouvette = False
         """
         #création de la palette de couleurs utiliser dans les graphique
+        Palette_moy=[]
         if mode_affichage_courbe == 1:
             palette1 = [ 'navy','mediumblue', 'dodgerblue', 'deepskyblue', 'royalblue','tab:blue','cornflowerblue','lightskyblue','lightsteelblue','lavender'] # couleurs utiliser sur le graph
             palette2 = [ 'lightcoral','brown','firebrick','maroon','tomato','orangered','salmon','coral','indianred','darkred','tab:red']
@@ -826,7 +897,10 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             
         elif mode_affichage_courbe == 2:
             Palette = [['b'], ['crimson'],['tab:green'],["tab:brown"]]
-            cross_Palette = Palette
+            a = 0.2 #alpha chanel, (transparence)
+            Palette =     [[(0, 0, 1,a)], [(220/255, 20/255, 60/255,a)],[(44/255, 160/255, 44/255,a)],[(243/255, 59/255, 238/255,a)],[(0,0,0,a)],[(222/255, 255/255, 0/255,a)]] #RGB avec valeurs entre 0 et 1
+            Palette_moy = [[(0, 0, 1,1)], [(220/255, 20/255, 60/255,1)],[(44/255, 160/255, 44/255,1)],[(243/255, 59/255, 238/255,1)],[(0,0,0,1)],[(222/255, 255/255, 0/255,1)]]
+            cross_Palette = Palette_moy
             
             style = 'dotted'
             style='-'
@@ -845,6 +919,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             style = '-'
             largeur = 1.2
 
+        
+
         style_moy = '-.'
         largeur_moy = 1.5
 
@@ -853,6 +929,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
         n_palette = i%len(Palette)
         palette = Palette[n_palette]
+        if Palette_moy != []:
+            palette_moy = Palette_moy[n_palette]
 
         n_cross_palette = i%len(cross_Palette)
         cross_palette = cross_Palette[n_cross_palette]
@@ -955,7 +1033,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                 section_ep.append( round( math.pi * (diamètre_ep[j]/2)**2  , 2))
                 
             
-        print("Sections:",section_ep)
+        #print("Sections:",section_ep)
             
 
         #Extraction des donées pour chaque eprouvettes:
@@ -1019,6 +1097,10 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     #style visuel de la courbe
                     k = ep%len(palette)
                     couleur = palette[k]
+                    if Palette_moy != []:
+                        couleur_moy = palette_moy[k]
+                    else:
+                        couleur_moy = palette[k]
 
                     offset_deplacement=0
                     if centrer_deformation_à_0: # "reprise de moue"
@@ -1027,8 +1109,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     else:
                         deplacement = liste_deplacement[ep-ep_sauter]
                         #deformation = liste_deformation[ep-ep_sauter]
+                    #print("longueur_ep",longueur_ep)
+                    #print("ep",ep)
                     L0 = longueur_ep[ep] + offset_deplacement
+                    
                     deformation = calculer_deformation(deplacement, L0)
+                    #print("section_ep[ep-ep_sauter]",section_ep[ep-ep_sauter])
                     contrainte  = calculer_contrainte(liste_force[ep-ep_sauter], section_ep[ep-ep_sauter])# Contrainte = Force/Section (force kN, section en mm²)
 
                     if force_depla == False: # Contrainte/Déformation
@@ -1152,7 +1238,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         moy_X,moy_Y = moyenne_courbe(List_X,List_Y)
         list_export_courbe_moyenne = plot_to_csv(moy_X,moy_Y)
         if afficher_courbe_moyenne == True:
-            plt.plot(moy_X, moy_Y, color=couleur, linestyle=style_moy, linewidth=largeur_moy) #affichage de la courbe moyenne
+            plt.plot(moy_X, moy_Y, color=couleur_moy, linestyle=style_moy, linewidth=largeur_moy) #affichage de la courbe moyenne
         
 
         l = ep%len(cross_palette)
@@ -1437,7 +1523,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             if description_ech_pousser:
                 description_echantillon = [description_echantillon] + info_sup
                 description_echantillon = '\n'.join(description_echantillon)
-            plt.plot(moy_X[0], moy_Y[0], color=couleur, linestyle=style_moy, linewidth=largeur_moy, label=description_echantillon)
+            plt.plot(moy_X[0], moy_Y[0], color=couleur_moy, linestyle='-', linewidth=largeur_moy, label=description_echantillon)
                     
         export_data.append([''])
         export_data += list_export_courbe_moyenne #rajout de la courbe moyenne
@@ -1497,8 +1583,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
     plt.legend()
     #plt.grid()
     
-    plt.show()
-
+    #plt.show()
+    
+    
     if montrer_deriver:
         ep_sauter=0
         force_moyenne = 15
@@ -1520,7 +1607,6 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
                     dX_moy, dY_moy = moyenner_courbe(dX, dY, force=force_moyenne)
                     
-                    E = calculer_E_a_partir_de_la_decharge( X2, Y2)
                     
                     nom = ''.join(['ep n°',str(ep+1)])
                     #plt.plot(dX, dY,linewidth=0.25, linestyle='dotted',color=palette[k])# ,label=nom) color="gray" #   DERIVE BRUTE
@@ -1539,8 +1625,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             else:
                 ep_sauter +=1
 
+
         print("fig.show()")
-        fig.show()
+        #fig.show()
         print("plt.show()")
         plt.show()
 
@@ -1662,7 +1749,9 @@ parametres=['montrer n° eprouvette', 0,
             'afficher courbe moyenne',False,]
 
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
