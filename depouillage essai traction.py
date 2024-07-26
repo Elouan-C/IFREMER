@@ -743,8 +743,8 @@ def plot_to_csv(list_x, list_y):
 def dériver_brut(X,Y):
     dX = X[:-1]
     dY=[]
-    for i in range(len(Y2)-1):
-        dY.append((Y[i+1] - Y[i]) /(X[i+1] - X2i]))
+    for i in range(len(Y)-1):
+        dY.append((Y[i+1] - Y[i]) /(X[i+1] - X[i]))
     return(dX, dY)
     
         
@@ -760,11 +760,11 @@ def trouver_point_inflection(X,Y,force_moyenne=15):
     
     val_prec = ddY_moy[0]
     for i in range(len(ddY_moy)-1): #On cherche la valeur en X des points d'inflections
-        if ddy_moy[i] == 0:
+        if ddY_moy[i] == 0:
             points_inflections.append([ddX_moy])
         elif math.copysign(1, ddY_moy[i]) != math.copysign(1, ddY_moy[i+1]): #test si les signes des deux valeurs sont différents
-            A = (ddX_moy[i],ddY_moy[i]))
-            B = (ddX_moy[i+1],ddY_moy[i+1]))
+            A = [ddX_moy[i],ddY_moy[i]]
+            B = [ddX_moy[i+1],ddY_moy[i+1]]
             ddX0=interpolation( A,B,0)
             points_inflections.append([ddX0])
 
@@ -776,38 +776,53 @@ def trouver_point_inflection(X,Y,force_moyenne=15):
             points_inflections[num_pnt_inflection].append(Y[i])
             num_pnt_inflection += 1
             
-        elif: (X[i] < x_infl) and (X[i+1] > x_infl):
-            A = (Y[i],X[i]))
-            B = (Y[i+1],X[i+1]))
+        elif (X[i] < x_infl) and (X[i+1] > x_infl):
+            A = [Y[i],X[i]]
+            B = [Y[i+1],X[i+1]]
             y_infl=interpolation( A,B,x_infl)
             points_inflections[num_pnt_inflection].append(y_infl)
             num_pnt_inflection += 1
         i+=1
-
+    #print("points_inflections",points_inflections)
     num_pnt_inflection = 0
     i=0
-    while num_pnt_inflection < len(points_inflections): #On cherche la valeur de la pente(dy) au niveau des points d'inflections
+    #print("len(points_inflections)",len(points_inflections))
+    nb_total_pnt_inflection = len(points_inflections)
+    while num_pnt_inflection < nb_total_pnt_inflection: #On cherche la valeur de la pente(dy) au niveau des points d'inflections
+        #print("num_pnt_inflection",num_pnt_inflection)
+        #print("points_inflections",points_inflections)
         x_infl = points_inflections[num_pnt_inflection][0]
         if dX_moy[i] == x_infl:
-            pente_au_points_inflection.append(dY_moy[i])
+            pente_au_points_inflection[num_pnt_inflection].append(dY_moy[i])
             num_pnt_inflection += 1
             
-        elif: (dX_moy[i] < x_infl) and (dX_moy[i+1] > x_infl):
-            A = (dY_moy[i],dX_moy[i]))
-            B = (dY_moy[i+1],dX_moy[i+1]))
+        elif (dX_moy[i] < x_infl) and (dX_moy[i+1] > x_infl):
+            A = [dY_moy[i],dX_moy[i]]
+            B = [dY_moy[i+1],dX_moy[i+1]]
             y_infl=interpolation( A,B,x_infl)
-            points_inflections.append(y_infl)
+            points_inflections[num_pnt_inflection].append(y_infl)
             num_pnt_inflection += 1
         i+=1
             
     return points_inflections #liste [[X,Y,pente], [],...]
         
-def recallage_donner_par_point_inflection(X,Y):
+def recallage_donner_par_point_inflection(X,Y): #On calcule la pente au premier point d'inflection, puis on trace la tangeante a la courbe au point d'inflection, et la où elle croise l'axe des X (y=0) est la nouvelle origine
     points_inflections = trouver_point_inflection(X,Y)
+    print("points_inflections",points_inflections)
+    if points_inflections != []:
 
-    premier_point_infl = points_inflections[0][:2] #on prend les deux première valeurs (X et Y)
-    pente_premier_infl = points_inflections[0][2]
-    
+        premier_point_infl = points_inflections[0][:2] #on prend les deux première valeurs (X et Y)
+        pente_premier_infl = points_inflections[0][2]
+
+        x_infl = premier_point_infl[0]
+        y_infl = premier_point_infl[1]
+
+        décalage_X = x_infl - y_infl/pente_premier_infl
+
+        X = list(np.array(X)-décalage_X)
+        return X, décalage_X, pente_premier_infl
+    else:
+        return X, 0, 0
     
 def depouiller_essais_traction_simple(Nom_csv, Parametres):
     """
@@ -870,6 +885,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         montrer_description_échantillon = val_para[16]
         description_echantillon = val_para[17]
         afficher_courbe_moyenne = val_para[18]
+        recallage_par_point_inflection = val_para[19]
 
         
 
@@ -1105,7 +1121,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     offset_deplacement=0
                     if centrer_deformation_à_0: # "reprise de moue"
                         deplacement,offset_deplacement = commencer_à_0_N(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter])
-                        #deformation = commencer_à_0_MPA(liste_deformation[ep-ep_sauter],liste_contraintes[ep-ep_sauter],longueur_initiale=Longueur_éprouvette) 
+                        #deformation = commencer_à_0_MPA(liste_deformation[ep-ep_sauter],liste_contraintes[ep-ep_sauter],longueur_initiale=Longueur_éprouvette)
+                        deplacement,offset_deplacement,K = recallage_donner_par_point_inflection(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter]) #K = raideur
                     else:
                         deplacement = liste_deplacement[ep-ep_sauter]
                         #deformation = liste_deformation[ep-ep_sauter]
@@ -1583,7 +1600,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
     plt.legend()
     #plt.grid()
     
-    #plt.show()
+    plt.show()
     
     
     if montrer_deriver:
@@ -1751,7 +1768,7 @@ parametres=['montrer n° eprouvette', 0,
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
