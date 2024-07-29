@@ -289,12 +289,13 @@ def calcule_Rp02_sans_E(liste_contrainte, liste_deformation, contrainte_max,Rp=0
 def calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=0.2,calcule_de="E"): #def en %, cnt en MPa, E en MPa, RP en %
     cnt=liste_contrainte
     eps=liste_deformation
-    E = (E/100)
+    #E = (E/100)
     Rp = float(Rp)
     #print("len(liste_contrainte)",len(liste_contrainte))
     
     for i in range(len(liste_contrainte)):
         cnt02 = E*eps[i] - E*Rp
+        #print(cnt[i]," | ",cnt02)
         if cnt[i] < cnt02:
             P11 = [Rp , 0]
             P12 = [Rp+1 , E]
@@ -308,9 +309,11 @@ def calcule_Rp02_avec_E(liste_contrainte, liste_deformation,E,Rp=0.2,calcule_de=
         elif cnt[i] == cnt02:
             #print("eps[i] , cnt[i]",eps[i] , cnt[i])
             return eps[i] , cnt[i]
-        else:
-            print("/!\\ calcule_Rp02_avec_E pas réaliser,la valeur de",calcule_de,"est fausse /!\\")
-            return 0,0 
+        
+        
+    print("/!\\ calcule_Rp02_avec_E pas réaliser,la valeur de",calcule_de,"est fausse /!\\")
+    return 0,0
+       
 
 def calcule_Rp02_adaptatif(liste_contrainte, liste_deformation,Rp=0.2,force_moyenne=15,seuille_linéarité=10,debug=False): #def en %, cnt en MPa, en MPa, RP en %, seuille_linéarité en %
     #on decale la deformation quand elle est stabiliser
@@ -1244,6 +1247,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     #print("cnt_max[1]",cnt_max[1])
                     E_adaptatif = calcule_E_adaptatif(deformation, contrainte,debug=debug)
                     poubelle1, poubelle2, E_inflection = recallage_donner_par_point_inflection(deformation,contrainte)
+                    print("si !=0 alors il y a un soucis:",poubelle2)
                     if debug:
                         print("len(liste_contraintes[ep-ep_sauter])",len(contrainte))
                         print("len(deformation)",len(deformation))
@@ -1252,8 +1256,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     eps02, rp02, E=calcule_Rp02_sans_E(contrainte, deformation, cnt_max[1], Rp=Rp)
                     #eps02, rp02 =  calcule_Rp02_avec_E(liste_contraintes[ep-ep_sauter], deformation, E_ISO_527)
                     
-                    eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_adaptatif)
+                    eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_adaptatif,calcule_de="Rp0.2")
                     eps02, rp02 = calcule_Rp02_adaptatif(contrainte, deformation, Rp=Rp,debug=debug)
+                    eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_inflection,calcule_de="Rp0.2")
                     
                     list_rp02.append([eps02, rp02])
                     l_rp02.append(rp02)
@@ -1447,7 +1452,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     window_size[3] = y_max
 
             if description_ech_pousser:
-                info_sup.append(''.join([r"$\sigma_{max}$ = ",str(round(moyenne_contrainte_max,1)),"±",str(round(2*ecart_type_contrainte_max,1))," MPa"]))
+                info_sup.append(''.join([r"$\sigma_{max}$  = ",str(round(moyenne_contrainte_max,1))," ±",str(round(2*ecart_type_contrainte_max,1))," MPa"]))
                 
         # moyenne Rp0.2
         if len(l_rp02) >= 2:
@@ -1509,7 +1514,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
         if description_ech_pousser and force_depla == False:
             #info_sup.append( ''.join(["E ∈ [",str(round(moyenne_E-2*ecart_type_E, nb_ar))," ; ",str(round(moyenne_E+2*ecart_type_E, nb_ar)),'] à 95%']) )
-            info_sup.append(''.join(["  E    = ",str(round(moyenne_E,1)),"±",str(round(2*ecart_type_E,1))," MPa"]))
+            info_sup.append(''.join(["   E    = ",str(round(moyenne_E,1))," ±",str(round(2*ecart_type_E,2))," MPa"]))
         if description_ech_pousser and force_depla == True:
             #info_sup.append( ''.join(["K ∈ [",str(round(moyenne_K-2*ecart_type_K, nb_ar))," ; ",str(round(moyenne_K+2*ecart_type_K, nb_ar)),'] à 95%']) )
             info_sup.append(''.join(["K = ",str(round(moyenne_K*100,1)),"±",str(round(2*ecart_type_K*100,1))," N/mm"]))
@@ -1550,7 +1555,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             if description_ech_pousser:
                 #info_sup.append(txt2)
-                info_sup.append(''.join(["$Rp_{{{}}}$ ∈ [".format(Rp),str(round(moyenne_rp02,1)),"±",str(round(2*ecart_type_rp02,1))," MPa"]))
+                info_sup.append(''.join(["$Rp_{{{}}}$ =".format(Rp),str(round(moyenne_rp02,1))," ±",str(round(2*ecart_type_rp02,1))," MPa"]))
         
 
         
@@ -1851,7 +1856,7 @@ nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai d
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
