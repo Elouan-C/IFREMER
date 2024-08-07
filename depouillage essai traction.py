@@ -49,16 +49,19 @@ def lire_parametres(nom_fichier_para):
         n_ligne = 0
         for ligne in fichier:
             # Supprime les espaces en début et fin de ligne et les sauts de ligne
+            #print("\nligne:",ligne,ligne.strip())
             ligne = ligne.strip()
+
             if ligne != "":
                 # Sépare la ligne en utilisant la virgule comme séparateur
                 elements = ligne.split(':')
                 # Ajoute la liste d'éléments à la liste principale
                 para.append(elements)
+                #print("elements:",elements)
             else:
                 para.append(ligne)
             n_ligne+=1
-
+    #print("\npara:\n",para)
     i = 0
     noms_csv = []
     while para[i] != '':
@@ -71,16 +74,17 @@ def lire_parametres(nom_fichier_para):
     while i < n_ligne:
         #print("para[i]:",para[i])
         donnée = para[i][1].split(';')
-        #print("donnée",donnée)
+        #print("\ndonnée",donnée)
         #print("len(donnée)",len(donnée))
         for j in range(len(donnée)):
 
             for true in list_true:#On transforme les charatère en valeur booléenne True ou False et on prend en compte différentes écritture possible
-                if true in str(donnée[j]):
+                if true == str(donnée[j]):
                     donnée[j] = True
             for false in list_false:
-                if false in str(donnée[j]):
+                if false == str(donnée[j]):
                     donnée[j] = False
+                    #print("false == str(donnée[j])")
             if '[]'  in str(donnée[j]):
                 donnée[j] = []
             elif '[' in str(donnée[j]): #On recréer les liste de liste
@@ -114,6 +118,7 @@ def lire_parametres(nom_fichier_para):
         para_reformater +=para_final[i]
     for i in range(len(noms_csv)):
         noms_csv_reformater += noms_csv[i]
+    #print("\npara_reformater:",para_reformater)
     return noms_csv, para_reformater
 
 def str_is_numeric(string):
@@ -215,11 +220,15 @@ def Point_Y_max(liste_X,liste_Y):
     return max_point
 
 def ecrire_liste_dans_csv(liste, nom_fichier):
-    with open(nom_fichier, 'w') as fichier:
-        for element in liste:
-            ligne = ";".join(map(str, element)) + "\n"
-            fichier.write(ligne)
-    print("raport écris dans",nom_fichier)
+    try:
+        with open(nom_fichier, 'w') as fichier:
+            for element in liste:
+                ligne = ";".join(map(str, element)) + "\n"
+                fichier.write(ligne)
+        print("raport écris dans",nom_fichier)
+        return True
+    except:
+        return False
 """
 def calcule_Rp02(liste_contrainte, liste_deformation, module_d_Young):
     cnt=liste_contrainte
@@ -416,8 +425,9 @@ def extraire_donee_par_eprouvettes(donnee, nb_eprouvette,taille_entete):
         liste_deplacement.append([])
         liste_force.append([])
         liste_autre.append([])
-        #print("donnee[ligne]: ",donnee[ligne])
+        #print("donnee[ligne+1]: ",donnee[ligne+1])
         while donnee[ligne][0] == '' and len(donnee[ligne])>1 :
+            #print("donnee[ligne+1]: ",donnee[ligne+1])
             liste_deplacement[-1].append(float(donnee[ligne][2]))
             liste_force[-1].append(      float(donnee[ligne][3]))
             liste_contraintes[-1].append(float(donnee[ligne][4]))
@@ -736,8 +746,33 @@ def moyenne_courbe(list_X, list_Y, degré_d_extrapolation=0): #list_X = [ [x11,x
 
     return(moy_x, mean_y_axis)
 
-def plot_to_csv(list_x, list_y):
-    arr = np.array([np.array(list_x),np.array(list_y)])
+def plot_to_csv(list_x, list_y, nom_X="X", nom_Y="Y",titre="tracé"):
+    X = [titre,nom_X]+list(list_x)
+    print("list_y[:5] ",list_y[:5])
+    Y = ['',nom_Y]+list(list_y)
+    arr = np.array([np.array(X),np.array(Y)])
+    arr = list(arr.T) #transposition de la matrice
+    for i in range(len(arr)):
+        arr[i] = list(arr[i])
+    return arr
+
+def multiplot_to_csv(list_plot): # list_plot = [[ X, Y, nom_X, nom_Y, titre], [...], ... ]
+    list_XY = []
+    max_len = 0
+    for pl in list_plot:
+        X = [pl[4],pl[2]]+list(pl[0])
+        Y = [''   ,pl[3]]+list(pl[1])
+        list_XY.append(X)
+        list_XY.append(Y)
+        list_XY.append(['']*len(X))
+        if len(X) > max_len:
+            max_len = len(X)
+    for i in range(len(list_XY)):
+        if len(list_XY[i]) != max_len:
+            list_XY[i] = list_XY[i]+ ([''] * (max_len-len(list_XY[i])))
+        list_XY[i] = np.array(list_XY[i])
+        
+    arr = np.array(list_XY)
     arr = list(arr.T) #transposition de la matrice
     for i in range(len(arr)):
         arr[i] = list(arr[i])
@@ -914,7 +949,49 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
     else:
         nb_essais = 1
 
+    #extraction du titre du graphique
+    print("Parametres",Parametres)
+    temp = Parametres[0]
+    """
+    if nb_essais != 1: 
+        temp = Parametres[0]
+    else:
+        temp = Parametres
+    """
+    temp = temp[1::2]
+    print("len(temp)",len(temp))
+    print("temp",temp)
+    titre = str(temp[12])
+    Rp = str(temp[2])
+    Rp = "".join(["Résistance élastique moyenne Rp",Rp, ' MPa'])
+    Rpec="".join(["Ecart type Rp",Rp, ' MPa'])
+    export_data2=[["Titre",titre.replace('\n',', ')],
+                  [''],
+                  ["type éprouvette",
+                   "n°échantillon",
+                   "nb éprouvette",
+                   "Raideur moyenne K (N/mm)",
+                   "Ecart type K (N/mm)",
+                   "Force max moyenne (N)",
+                   "Ecart type Fmax (N)",
+                   "Déplacement à Fmax (mm)",
+                   "Ecart type de déplacement à Fmax (mm)",
+                   "Section initiale (mm²)",
+                   "Module d'Young moyenne E (MPA)",
+                   "Ecart type E (Mpa)",
+                   "Contrainte max moyenne (MPa)",
+                   "Ecart type Contrainte max (MPa)",
+                   "Déformation à Contrainte max (%)",
+                   "Ecart type de déformation à Contrainte max (%)",
+                   Rp,
+                   Rpec,
+                   "Description échantillon"]]
+    list_export_courbe_moyenne2 = []
+    
     for i in range(nb_essais):
+        export_data_echantillon = ['']*len(export_data2[2])
+        #print(len(export_data_echantillon),'  |  ',len(export_data2[2]))
+        #print(export_data2)
         if nb_essais != 1:
             nom_csv = Nom_csv[i]
             parametres = Parametres[i]
@@ -924,6 +1001,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         nom_csv = Nom_csv[i]
         parametres = Parametres[i]
         nom_echantillon = extraire_nom_du_csv(nom_csv)
+        export_data_echantillon[1]=nom_echantillon #numéro de l'échantillon
 
         print("\n\n============---",nom_echantillon,"---============\n")
         donnee = lire_csv_sans_lib(nom_csv ) #ouverture du fichier .csv exporter depuis la machine de traction
@@ -981,8 +1059,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             a = 0.2 #alpha chanel, (transparence)
             #Palette =     [[(0, 0, 1,a)], [(220/255, 20/255, 60/255,a)],[(44/255, 160/255, 44/255,a)],[(243/255, 59/255, 238/255,a)],[(0,0,0,a)],[(222/255, 255/255, 0/255,a)]] #RGB avec valeurs entre 0 et 1
             #Palette_moy = [[(0, 0, 1,1)], [(220/255, 20/255, 60/255,1)],[(44/255, 160/255, 44/255,1)],[(243/255, 59/255, 238/255,1)],[(0,0,0,1)],[(222/255, 255/255, 0/255,1)]]
-            Palette =     [[(0, 87/255, 233/255,a)], [(225/255, 24/255, 69/255,a)],[(44/255, 160/255, 44/255,a)],[(255/255, 0/255, 189/255,a)],[(0,0,0,a)],[(242/255, 202/255, 25/255,a)],[(137/255, 49/255, 239/255,a)]] #RGB avec valeurs entre 0 et 1
-            Palette_moy = [[(0, 87/255, 233/255,1)], [(225/255, 24/255, 69/255,1)],[(44/255, 160/255, 44/255,1)],[(255/255, 0/255, 189/255,1)],[(0,0,0,1)],[(242/255, 202/255, 25/255,1)],[(137/255, 49/255, 239/255,a)]]
+            Palette =     [[(0, 87/255, 233/255,a)], [(225/255, 24/255, 69/255,a)],[(44/255, 160/255, 44/255,a)],[(0,0,0,a)],[(242/255, 202/255, 25/255,a)],[(255/255, 0/255, 189/255,a)],[(137/255, 49/255, 239/255,a)],[(255/255, 107/255, 0/255,a)],[(0/255, 200/255, 200/255,a)],[(120/255, 133/255, 43/255,a)]] #RGB avec valeurs entre 0 et 1
+            Palette_moy = [[(0, 87/255, 233/255,1)], [(225/255, 24/255, 69/255,1)],[(44/255, 160/255, 44/255,1)],[(0,0,0,1)],[(242/255, 202/255, 25/255,1)],[(255/255, 0/255, 189/255,1)],[(137/255, 49/255, 239/255,1)],[(255/255, 107/255, 0/255,1)],[(0/255, 200/255, 200/255,1)],[(120/255, 133/255, 43/255,1)]]
             cross_Palette = Palette_moy
             
             style = 'dotted'
@@ -1020,7 +1098,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
         #extraction de la donnée de la géométrie des eprouvettes
         j = 0
+        #print("len(donnee)",len(donnee))
+        #print(donnee[:10])
         while donnee[j] != ['']:#on cherche le premier blanc dans le fichier, qui sert de délimiteur
+            #if j < 8:
+                #print("j+1",j+1)
+                #print(donnee[j+1])
             j+=1
 
         if i> len(description_echantillon):
@@ -1042,9 +1125,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             description_ech_pousser= True
             info_sup = []
        
-            
+        description_echantillon_dans_csv = donnee[0] 
         donnee_géométrie = donnee[1:j]
         donnee = donnee[j+1:]
+
+        export_data_echantillon[0] = description_echantillon_dans_csv[2] #type d'éprouvette
+        export_data_echantillon[18]= str(description_echantillon).replace('\n',', ') #description de l'échantillon dans le fichier parametre.txt
 
         
 
@@ -1077,7 +1163,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             if len(donnee_géométrie[2]) == 3: # largeur constante sur tout l'échantillon
                 largeur_ep = [float(donnee_géométrie[2][2])] * nb_eprouvette
-            else:#                             largeurr différente pour chaque eprouvettes
+            else:#                             largeur différente pour chaque eprouvettes
                 largeur_ep = donnee_géométrie[2][2:]
                 for j in range(len(largeur_ep)):
                     largeur_ep[j] = float(largeur_ep[j])
@@ -1123,7 +1209,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             for j in range(nb_eprouvette):
                 section_ep.append( round( math.pi * (diamètre_ep[j]/2)**2  , 2))
                 
-            
+        export_data_echantillon[9]= statistics.mean(section_ep)
         #print("Sections:",section_ep)
             
 
@@ -1137,6 +1223,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                      [""],
                      ["n°éprouvette","nom éprouvette","Vitesse d'essai","Contrainte max","Deformation à contrainte max","Module de Young machine","Module de Young 'adaptatif'","Module de Young ISO 527","Rp0,2"],
                      ["","",donnee[2][2],donnee[2][3],donnee[2][4],donnee[2][5],donnee[2][5],donnee[2][5],donnee[2][5]]]
+        
         
         
 
@@ -1336,6 +1423,19 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         #plt.axis([-2, 20, -3, 65])
         moy_X,moy_Y = moyenne_courbe(List_X,List_Y)
         list_export_courbe_moyenne = plot_to_csv(moy_X,moy_Y)
+
+        if force_depla == False:
+            nom_X = "Déplacement (mm)"
+            nom_Y = "Force (kN)"
+        else:
+            nom_X = "Déformation (%)"
+            nom_Y = "Contrainte (MPa)"
+        list_export_courbe_moyenne2.append([moy_X,
+                                            moy_Y,
+                                            nom_X,
+                                            nom_Y,
+                                            ''.join(['Courbe moyenne de ',nom_echantillon]) ])
+        
         if afficher_courbe_moyenne == True:
             plt.plot(moy_X, moy_Y, color=couleur_moy, linestyle=style_moy, linewidth=largeur_moy) #affichage de la courbe moyenne
         
@@ -1363,9 +1463,10 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                 for pnt in list_rp02:
                     plt.plot(pnt[0],pnt[1], '+', color = cross_palette[l])
         else:
-            #affichage des Forces max pour chaque courbes
-            for for_max in list_point_for_max:
-                plt.plot(for_max[0],for_max[1], '+', color = cross_palette[l])
+            if affich_cnt_max == True:
+                #affichage des Forces max pour chaque courbes
+                for for_max in list_point_for_max:
+                    plt.plot(for_max[0],for_max[1], '+', color = cross_palette[l])
 
             
             
@@ -1386,8 +1487,10 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             moyenne_deformation_contrainte_max = list_def_cnt_max[0]
             ecart_type_deformation_contrainte_max = 0
 
-        nb_ar=2
+        export_data_echantillon[2]=len(list_cnt_max) #nombre d'éprouvettes utilisé
 
+        nb_ar=2
+        
         print("\n            ===\n")
         print("nombre d'éprouvettes utilisé:",len(list_cnt_max),"\n")
         print("médiane de la contrainte max:",statistics.median(list_cnt_max))
@@ -1399,7 +1502,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         print("Dans   95% des cas σmax ∈",[round(moyenne_contrainte_max-2*ecart_type_contrainte_max, nb_ar) , round(moyenne_contrainte_max+2*ecart_type_contrainte_max, nb_ar)],"MPa")
         print("Dans 99.7% des cas σmax ∈",[round(moyenne_contrainte_max-3*ecart_type_contrainte_max, nb_ar) , round(moyenne_contrainte_max+3*ecart_type_contrainte_max, nb_ar)],"MPa")
 
+        export_data_echantillon[12] = moyenne_contrainte_max #MPa
+        export_data_echantillon[13] = ecart_type_contrainte_max #MPa
+        export_data_echantillon[14] = moyenne_deformation_contrainte_max #%
+        export_data_echantillon[15] = ecart_type_deformation_contrainte_max #%
 
+        
         export_data.append([''])
         export_data.append(['         -=-'])
         export_data.append(['eprouvette utiliser:',montrer_que_certaines_eprouvettes])
@@ -1519,7 +1627,14 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             #info_sup.append( ''.join(["K ∈ [",str(round(moyenne_K-2*ecart_type_K, nb_ar))," ; ",str(round(moyenne_K+2*ecart_type_K, nb_ar)),'] à 95%']) )
             info_sup.append(''.join(["K = ",str(round(moyenne_K*100,1)),"±",str(round(2*ecart_type_K*100,1))," N/mm"]))
             
-
+        export_data_echantillon[3] = moyenne_K*100 #N/mm
+        export_data_echantillon[4] = ecart_type_K*100 #N/mm
+        export_data_echantillon[10] = moyenne_E #MPa
+        export_data_echantillon[11] = ecart_type_E #MPa
+        export_data_echantillon[16]= moyenne_rp02 #MPa
+        export_data_echantillon[17]= ecart_type_rp02 #MPa
+        
+        
         export_data.append([''])
         export_data.append(["Moyenne des Rp0.2",moyenne_rp02])
         export_data.append(["Ecart type des Rp0.2",ecart_type_rp02])
@@ -1588,7 +1703,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         print("Dans   95% des cas Fmax ∈",[round(moyenne_fmax-2*ecart_type_fmax, nb_ar) , round(moyenne_fmax+2*ecart_type_fmax, nb_ar)],"kN")
         print("Dans 99.7% des cas Fmax ∈",[round(moyenne_fmax-3*ecart_type_fmax, nb_ar) , round(moyenne_fmax+3*ecart_type_fmax, nb_ar)],"kN")
 
+        export_data_echantillon[5] = moyenne_fmax*1000 #N
+        export_data_echantillon[6] = ecart_type_fmax*1000 #N
+        export_data_echantillon[7] = moyenne_deplacement_fmax #mm
+        export_data_echantillon[8] = ecart_type_deplacement_fmax #mm
 
+        
         export_data.append([''])
         export_data.append(["Moyenne des Fmax",moyenne_fmax])
         export_data.append(["Ecart type des Fmax",ecart_type_fmax])
@@ -1600,7 +1720,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
         if description_ech_pousser and force_depla == True:
             #info_sup.append( ''.join(["Fmax ∈ [",str(round(moyenne_fmax-2*ecart_type_fmax, nb_ar))," ; ",str(round(moyenne_fmax+2*ecart_type_fmax, nb_ar)),'] à 95%']) )
-            info_sup.append( ''.join(["Fmax =",str(round(moyenne_fmax*100,1)),"±",str(round(2*ecart_type_fmax*100,1)),' N']))
+            info_sup.append( ''.join(["Fmax =",str(round(moyenne_fmax*1000,1)),"±",str(round(2*ecart_type_fmax*1000,1)),' N']))
 
 
         if force_depla == True: # Contrainte/Déformation
@@ -1631,6 +1751,30 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         export_data.append([''])
         export_data += list_export_courbe_moyenne #rajout de la courbe moyenne
         ecrire_liste_dans_csv(export_data,"test.csv")
+    
+        export_data2 += [export_data_echantillon]
+                                           
+    list_export_courbe_moyenne = multiplot_to_csv(list_export_courbe_moyenne2)
+    export_data2 += ['']*3
+    export_data2 += list_export_courbe_moyenne
+    nom_raport_csv = ''.join(['Rapport ',export_data2[0][1],'.csv'])
+    nom_raport_csv = nom_raport_csv.replace(' ','_')
+    rapport_a_pu_etre_ecris = ecrire_liste_dans_csv(export_data2,nom_raport_csv)
+
+
+    if rapport_a_pu_etre_ecris:
+        nb_caracter = len(nom_raport_csv)
+        if nb_caracter < len("Rapport Exporter sous:"):
+            nb_caracter = len("Rapport Exporter sous:")
+
+        
+        print("\n")
+        print(''.join(['=']*nb_caracter))
+        print("Rapport Exporter sous:")
+        print(nom_raport_csv)
+        print(''.join(['=']*nb_caracter))
+    else:
+        print("\n/!\\ LE RAPPORT N'A PAS PU ÊTRE ECRIS /!\\\nIl faut fermer la page excel suivante:\n",nom_raport_csv)
 
 
         
@@ -1828,19 +1972,20 @@ nom_csv=["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-13-2
 nom_csv = ["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/essais 10-07-2024 pour laurent/EP5-100724.csv"]
 
 nom_csv=["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-17-250724.csv"]
+nom_csv=["C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-33-010824.csv"]
 
 
 parametres=['montrer n° eprouvette', 1,
             'Deplacer les deformation en 0', False,
             'Rp', 0.2,
-            'montrer_que_certaines_eprouvettes', [[],[],[],[],[],[],[]],
+            'montrer_que_certaines_eprouvettes', [[1,2,3,6],[],[],[],[],[],[]],
             'Longueur_éprouvette (obsolete)', 115,
             'debug',True,
             'montrer dériver',False,
             'Force/déplacement',True,
             'afficher contrainte max',True,
             'afficher Rp02',False,
-            'mode affichage courbe [1,2,3,4]',4,
+            'mode affichage courbe [1,2,3,4]',1,
             'mettre flèches',False,
             'nom graphique','Essai de traction sur Filaments PETG',
             'base arondi',5,
@@ -1850,18 +1995,28 @@ parametres=['montrer n° eprouvette', 1,
             'Description échantillon',['Eprouvette 60° imprimer à 260°¤',
                                        'Eprouvette 60° imprimer à 230°¤'],
             'afficher courbe moyenne',False,
-            "recallage par point d'infelction",True]
+            "recallage par point d'infelction",False]
 #"""
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG +- 90°.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de l'épaisseur de trait pour une buse de D0.7.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de la surextrusion.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/disparité entre deux éprouvettes identique.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
 #"""
+#print("\nparametres:\n",parametres)
 para = parametres_identiques(parametres,nom_csv)
+#print("\npara:\n",para)
+#print("")
+
 depouiller_essais_traction_simple(nom_csv,para)
 
 #combiner_plusieurs_échantillons(nom_csv,"C:/Users/ecreach/Desktop/test.csv")
