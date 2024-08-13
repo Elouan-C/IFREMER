@@ -64,7 +64,7 @@ def lire_parametres(nom_fichier_para):
     #print("\npara:\n",para)
     i = 0
     noms_csv = []
-    while para[i] != '':
+    while para[i] != '' or (para[i] == '' and para[i+1] == ''):
         #print(para[i])
         noms_csv.append(":".join(para[i]))
         i+=1
@@ -924,6 +924,25 @@ def recallage_simple_des_X_pour_passer_par_origine(X,Y, zéro=0.0005):
 
     return list(np_X), offset_X
 
+def calculer_aire_sous_courbe_avec_retour_elastique(pente_partie_linéaire, X,Y):
+    X = np.array(X)
+    Y = np.array(Y)
+    
+    X = list( X - Y/pente_partie_linéaire )
+    Y = list( Y )
+
+    Air = 0
+    
+    for i in range(len(X)-1):
+        #calculede l'aire par la méthode des trapèzes
+        a = Y[i]
+        b = Y[i+1]
+        h = X[i+1]-X[i]
+
+        Air += (a + b)/2 * h
+    
+    return Air
+
 def depouiller_essais_traction_simple(Nom_csv, Parametres):
     """
     #création de la palette de couleurs utiliser dans les graphique
@@ -950,7 +969,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         nb_essais = 1
 
     #extraction du titre du graphique
-    print("Parametres",Parametres)
+    #print("Parametres",Parametres)
     temp = Parametres[0]
     """
     if nb_essais != 1: 
@@ -959,8 +978,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         temp = Parametres
     """
     temp = temp[1::2]
-    print("len(temp)",len(temp))
-    print("temp",temp)
+    #print("len(temp)",len(temp))
+    #print("temp",temp)
     titre = str(temp[12])
     Rp = str(temp[2])
     Rp = "".join(["Résistance élastique moyenne Rp",Rp, ' MPa'])
@@ -985,6 +1004,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                    "Ecart type de déformation à Contrainte max (%)",
                    Rp,
                    Rpec,
+                   "Energie absorbé par éprouvette (J)",
+                   "Ecart type de l'énergie absorbé par éprouvette (J)",
                    "Description échantillon"]]
     list_export_courbe_moyenne2 = []
     
@@ -1029,10 +1050,15 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         description_echantillon = val_para[17]
         afficher_courbe_moyenne = val_para[18]
         recallage_par_point_inflection = val_para[19]
+        try:
+            ne_pas_toucher = val_para[20]
+        except:
+            ne_pas_toucher = [[]]*len(montrer_que_certaines_eprouvettes )
 
         
-
+        
         montrer_que_certaines_eprouvettes = montrer_que_certaines_eprouvettes[i]
+        ne_pas_toucher = ne_pas_toucher[i]
 
         X_taille_fleche = 10#% de la taille de la fenètre
         Y_taille_fleche = 15#% de la taille de la fenètre
@@ -1130,7 +1156,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         donnee = donnee[j+1:]
 
         export_data_echantillon[0] = description_echantillon_dans_csv[2] #type d'éprouvette
-        export_data_echantillon[18]= str(description_echantillon).replace('\n',', ') #description de l'échantillon dans le fichier parametre.txt
+        export_data_echantillon[20]= str(description_echantillon).replace('\n',', ') #description de l'échantillon dans le fichier parametre.txt
 
         
 
@@ -1245,6 +1271,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         ep_rp02 = []
         list_E = [] #liste des Module d'Young en N/mm² (MPa)
         list_K = [] #liste des raideurs en N/mm
+
+        list_énergie_absorber = []
         
         
         """
@@ -1258,13 +1286,15 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         List_X = []
         List_Y = []
         
-        
+        print("ne_pas_toucher",ne_pas_toucher)
         if debug:
             print("liste_eprouvette_vide",liste_eprouvette_vide)
             print("nb_eprouvette:",nb_eprouvette)
         nom_echantillon_déja_montrer = False
         ep_sauter = 0 #on saute des éprouvette si elle n'a aucune donnée (c'est déja arrivé)
         for ep in range(nb_eprouvette):
+            pas_touche = (ep+1 in ne_pas_toucher) #si il n'y a pas assez de donner dans l'éprouvette pour faire tout le postraitement comme des dérivées
+            print("pas_touche",pas_touche)
             if debug:
                 print("\nep",ep)
             if not( (ep+1) in liste_eprouvette_vide ):#on vérifie que l'éprouvette à des données associées
@@ -1282,7 +1312,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
                     offset_deplacement=0
                     K_infl = None
-                    if recallage_par_point_inflection:
+                    if recallage_par_point_inflection and pas_touche==False:
                         deplacement,offset_deplacement,K_infl = recallage_donner_par_point_inflection(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter]) #K = raideur
                     elif centrer_deformation_à_0: # "reprise de moue"
                         deplacement,offset_deplacement = commencer_à_0_N(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter])
@@ -1326,32 +1356,46 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     list_dep_for_max.append(for_max[0])
 
                     ligne_entete = 3+ep
-                    E_machine = donnee[ligne_entete][5]
-                    E_ISO_527 = calculer_E_a_partir_de_la_ISO_527(deformation, contrainte,debug=debug)
+                    E_machine = float(donnee[ligne_entete][5])
+                    if pas_touche == False:
+                        E_ISO_527 = calculer_E_a_partir_de_la_ISO_527(deformation, contrainte,debug=debug)
+                    else:
+                        E = E_machine
+
+                    air_sous_courbe = None
                     
                     #Calcule du Rp0.2 et E
                     #print("len(deformation)",len(deformation))
                     #print("cnt_max[1]",cnt_max[1])
-                    E_adaptatif = calcule_E_adaptatif(deformation, contrainte,debug=debug)
-                    poubelle1, poubelle2, E_inflection = recallage_donner_par_point_inflection(deformation,contrainte)
-                    print("si !=0 alors il y a un soucis:",poubelle2)
-                    if debug:
-                        print("len(liste_contraintes[ep-ep_sauter])",len(contrainte))
-                        print("len(deformation)",len(deformation))
-                        print("cnt_max[1]",cnt_max[1])
-                        print("Rp",Rp)
-                    eps02, rp02, E=calcule_Rp02_sans_E(contrainte, deformation, cnt_max[1], Rp=Rp)
-                    #eps02, rp02 =  calcule_Rp02_avec_E(liste_contraintes[ep-ep_sauter], deformation, E_ISO_527)
+                    if pas_touche == False:
+                        E_adaptatif = calcule_E_adaptatif(deformation, contrainte,debug=debug)
+                        poubelle1, poubelle2, E_inflection = recallage_donner_par_point_inflection(deformation,contrainte)
+                        print("si !=0 alors il y a un soucis:",poubelle2)
+                        if debug:
+                            print("len(liste_contraintes[ep-ep_sauter])",len(contrainte))
+                            print("len(deformation)",len(deformation))
+                            print("cnt_max[1]",cnt_max[1])
+                            print("Rp",Rp)
+                        eps02, rp02, E=calcule_Rp02_sans_E(contrainte, deformation, cnt_max[1], Rp=Rp)
+                        #eps02, rp02 =  calcule_Rp02_avec_E(liste_contraintes[ep-ep_sauter], deformation, E_ISO_527)
                     
-                    eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_adaptatif,calcule_de="Rp0.2")
-                    eps02, rp02 = calcule_Rp02_adaptatif(contrainte, deformation, Rp=Rp,debug=debug)
-                    eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_inflection,calcule_de="Rp0.2")
+                        eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_adaptatif,calcule_de="Rp0.2")
+                        eps02, rp02 = calcule_Rp02_adaptatif(contrainte, deformation, Rp=Rp,debug=debug)
+                        eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_inflection,calcule_de="Rp0.2")
+
+                    else:
+                        eps02, rp02 = calcule_Rp02_avec_E(contrainte, deformation, E_machine,calcule_de="Rp0.2")
                     
                     list_rp02.append([eps02, rp02])
                     l_rp02.append(rp02)
                     ep_rp02.append(eps02)
+
                     
-                    list_E.append( E_inflection)
+
+                    if pas_touche == False:
+                        list_E.append( E_inflection)
+                    else:
+                        list_E.append( E_machine )
                     if debug:
                         print("nb de points de l'éprouvette",len(contrainte))
                         print("E (machine de traction)",E_machine)
@@ -1361,10 +1405,15 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         print(" E_inflection", E_inflection)
                         print("for_max[1]",for_max[1])
 
-                    if K_infl == None:
-                        poubelle1, poubelle2,K_infl = recallage_donner_par_point_inflection(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter])
-                    #◘dep02, rpf02, K =calcule_Rp02_sans_E(deplacement, liste_force[ep-ep_sauter], for_max[1], Rp=Rp, calcule_de='K')
                     
+                    if K_infl == None:
+                        if pas_touche == False:
+                            poubelle1, poubelle2,K_infl = recallage_donner_par_point_inflection(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter])
+                        else:
+                            K_infl = 1 #au pifometre
+                    #◘dep02, rpf02, K =calcule_Rp02_sans_E(deplacement, liste_force[ep-ep_sauter], for_max[1], Rp=Rp, calcule_de='K')
+
+                    list_énergie_absorber += [calculer_aire_sous_courbe_avec_retour_elastique(K_infl, liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter])]
                     list_K.append(K_infl)
                     #determinasion de la taille de la fenetre d'affichage:
                     X = X.tolist() #conversion du numpy array en list
@@ -1412,8 +1461,9 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
                     
                     #on met dans le rapport les élément de l'entete qui nous interesse
+                    if pas_touche == False:
+                        export_data.append([ donnee[ligne_entete][0], donnee[ligne_entete][1], donnee[ligne_entete][2], cnt_max[1], cnt_max[0], E,E_adaptatif, E_ISO_527, rp02])
                     
-                    export_data.append([ donnee[ligne_entete][0], donnee[ligne_entete][1], donnee[ligne_entete][2], cnt_max[1], cnt_max[0], E,E_adaptatif, E_ISO_527, rp02])
 
             else:
                 ep_sauter +=1
@@ -1421,7 +1471,11 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         
         
         #plt.axis([-2, 20, -3, 65])
-        moy_X,moy_Y = moyenne_courbe(List_X,List_Y)
+        if pas_touche:
+            moy_X = List_X[0]
+            moy_Y = List_Y[0]
+        else:
+            moy_X,moy_Y = moyenne_courbe(List_X,List_Y)
         list_export_courbe_moyenne = plot_to_csv(moy_X,moy_Y)
 
         if force_depla == False:
@@ -1561,7 +1615,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             if description_ech_pousser:
                 info_sup.append(''.join([r"$\sigma_{max}$  = ",str(round(moyenne_contrainte_max,1))," ±",str(round(2*ecart_type_contrainte_max,1))," MPa"]))
-                
+
+        
         # moyenne Rp0.2
         if len(l_rp02) >= 2:
             moyenne_rp02= statistics.mean(l_rp02)
@@ -1575,7 +1630,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             moyenne_K = statistics.mean(list_K)
             ecart_type_K = statistics.stdev(list_K)
-        else:
+
+            moyenne_energie = statistics.mean(list_énergie_absorber)
+            ecart_energie = statistics.stdev(list_énergie_absorber)
+                
+                
+        elif len(l_rp02) ==1:
             moyenne_rp02= l_rp02[0]
             ecart_type_rp02 = 0
 
@@ -1587,6 +1647,25 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             moyenne_K = list_K[0]
             ecart_type_K = 0
+
+            moyenne_energie = list_énergie_absorber[0]
+            ecart_energie = 0
+            
+        elif len(l_rp02) ==0:
+            moyenne_rp02= 0
+            ecart_type_rp02 = 0
+
+            moyenne_deformation_rp02= 0
+            ecart_type_deformation_rp02 = 0
+
+            moyenne_E = 0
+            ecart_type_E = 0
+
+            moyenne_K = 0
+            ecart_type_K = 0
+
+            moyenne_energie = 0
+            ecart_energie = 0
 
         nb_ar=2
 
@@ -1626,6 +1705,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         if description_ech_pousser and force_depla == True:
             #info_sup.append( ''.join(["K ∈ [",str(round(moyenne_K-2*ecart_type_K, nb_ar))," ; ",str(round(moyenne_K+2*ecart_type_K, nb_ar)),'] à 95%']) )
             info_sup.append(''.join(["K = ",str(round(moyenne_K*100,1)),"±",str(round(2*ecart_type_K*100,1))," N/mm"]))
+            info_sup.append(''.join(["E = ",str(round(moyenne_energie,1)),"±",str(round(ecart_energie,1))," J"]))
+            
             
         export_data_echantillon[3] = moyenne_K*100 #N/mm
         export_data_echantillon[4] = ecart_type_K*100 #N/mm
@@ -1633,6 +1714,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         export_data_echantillon[11] = ecart_type_E #MPa
         export_data_echantillon[16]= moyenne_rp02 #MPa
         export_data_echantillon[17]= ecart_type_rp02 #MPa
+        export_data_echantillon[18]= moyenne_energie #MPa
+        export_data_echantillon[19]= ecart_energie #MPa
         
         
         export_data.append([''])
@@ -1999,15 +2082,17 @@ parametres=['montrer n° eprouvette', 1,
 #"""
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG +- 90°.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de l'épaisseur de trait pour une buse de D0.7.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de la surextrusion.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
+#{nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/disparité entre deux éprouvettes identique.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur PETG Bleu Francofil.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
