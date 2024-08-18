@@ -199,6 +199,8 @@ def commencer_à_0_N(liste_deplacement,liste_force, zéro=0.0005):
 
 
 def interpolation( A,B,y_cible):
+    #A=[Xa;Ya]
+    #B=[Xb;Yb]
     if (B[0]-A[0]) != 0:
         a= (B[1]-A[1]) / (B[0]-A[0])
     else:
@@ -1031,7 +1033,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         nom_para = parametres[::2] # séparation des description de parametres et de leur valeur
         val_para = parametres[1::2]
         montrer_N_eprouvette = val_para[0]
-        centrer_deformation_à_0 = val_para[1]
+        centrer_deformation_à_0 = bool(val_para[1])
+        print("centrer_deformation_à_0",centrer_deformation_à_0)
         Rp = val_para[2]
         montrer_que_certaines_eprouvettes = val_para[3]
         Longueur_éprouvette  = val_para[4]
@@ -1312,14 +1315,19 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
                     offset_deplacement=0
                     K_infl = None
-                    if recallage_par_point_inflection and pas_touche==False:
+                    if (recallage_par_point_inflection == True) and (pas_touche==False):
+                        print("recallage_donner_par_point_inflection(")
                         deplacement,offset_deplacement,K_infl = recallage_donner_par_point_inflection(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter]) #K = raideur
-                    elif centrer_deformation_à_0: # "reprise de moue"
-                        deplacement,offset_deplacement = commencer_à_0_N(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter])
-                        #deformation = commencer_à_0_MPA(liste_deformation[ep-ep_sauter],liste_contraintes[ep-ep_sauter],longueur_initiale=Longueur_éprouvette)                     
                     else:
-                        deplacement = liste_deplacement[ep-ep_sauter]
-                        #deformation = liste_deformation[ep-ep_sauter]
+                        print("centrer_deformation_à_0",centrer_deformation_à_0,type(centrer_deformation_à_0))
+                        if centrer_deformation_à_0 == True: # "reprise de moue"
+                            print("commencer_à_0_N(")
+                            deplacement,offset_deplacement = commencer_à_0_N(liste_deplacement[ep-ep_sauter],liste_force[ep-ep_sauter],zéro=0.0005)
+                            #deformation = commencer_à_0_MPA(liste_deformation[ep-ep_sauter],liste_contraintes[ep-ep_sauter],longueur_initiale=Longueur_éprouvette)                     
+                        else:
+                            print("pas de recallage")
+                            deplacement = liste_deplacement[ep-ep_sauter]
+                            #deformation = liste_deformation[ep-ep_sauter]
                     #print("longueur_ep",longueur_ep)
                     #print("ep",ep)
                     L0 = longueur_ep[ep] + offset_deplacement
@@ -1356,7 +1364,10 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     list_dep_for_max.append(for_max[0])
 
                     ligne_entete = 3+ep
-                    E_machine = float(donnee[ligne_entete][5])
+                    try:
+                        E_machine = float(donnee[ligne_entete][5])
+                    except:
+                        E_machine = 0 #pas idéale
                     if pas_touche == False:
                         E_ISO_527 = calculer_E_a_partir_de_la_ISO_527(deformation, contrainte,debug=debug)
                     else:
@@ -1476,6 +1487,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             moy_Y = List_Y[0]
         else:
             moy_X,moy_Y = moyenne_courbe(List_X,List_Y)
+            
         list_export_courbe_moyenne = plot_to_csv(moy_X,moy_Y)
 
         if force_depla == False:
@@ -1829,7 +1841,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             if description_ech_pousser:
                 description_echantillon = [description_echantillon] + info_sup
                 description_echantillon = '\n'.join(description_echantillon)
-            plt.plot(moy_X[0], moy_Y[0], color=couleur_moy, linestyle='-', linewidth=largeur_moy, label=description_echantillon)
+
+            try:
+                plt.plot(moy_X[0], moy_Y[0], color=couleur_moy, linestyle='-', linewidth=largeur_moy, label=description_echantillon)
+            except:
+                print(moy_X)
+                print(moy_Y)
                     
         export_data.append([''])
         export_data += list_export_courbe_moyenne #rajout de la courbe moyenne
@@ -2082,7 +2099,7 @@ parametres=['montrer n° eprouvette', 1,
 #"""
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG +- 90°.txt"
@@ -2093,6 +2110,9 @@ nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai d
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur PETG Bleu Francofil.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG avec parametres différents.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette S PETG.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/demonstration logiciel post traitement.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
