@@ -18,6 +18,7 @@ Rp = 0.2 #%
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import ticker
+import matplotlib.text as mtext
 import numpy as np
 import statistics
 import math
@@ -1441,7 +1442,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         window_size[1] = max(X)
                     elif X[Y.index(max(Y))] > window_size[1]:
                         window_size[1] = X[Y.index(max(Y))]
-
+                        
                     
                     #AFFICHAGE DE LA COURBE LIER A L'EPROUVETTE
                     if (nom_echantillon_déja_montrer==False) and mode_affichage_courbe != 3:
@@ -1452,21 +1453,21 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         if montrer_description_échantillon:
                             nom.append( ''.join(['',description_echantillon]))
                         """
+
                         nom = ', '.join(nom)
                         
                         if montrer_N_échantillon :#or montrer_description_échantillon:
                             nom_echantillon_déja_montrer = True
-                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
-                        
+                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
                         montrer_description_échantillon
                             
                     if montrer_N_eprouvette==1:
                         nom = ''.join([nom_echantillon,'-',str(ep+1)])
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
+                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
                     elif montrer_N_eprouvette==2:
                         ligne_entete = 3+ep
                         nom = donnee[ligne_entete][1]
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=nom)
+                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
                     else:
                         plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur)
 
@@ -1839,10 +1840,15 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
         if montrer_description_échantillon:
             if description_ech_pousser:
+                description_echantillon = description_echantillon.replace("%", "\%")
+
+                description_echantillon = r'$\mathbf{'+description_echantillon+'}$' #on met en gras le nom de l'échantillon
+
                 description_echantillon = [description_echantillon] + info_sup
                 description_echantillon = '\n'.join(description_echantillon)
 
-            try:
+            try:#r'$\mathbf{test}$'
+                
                 plt.plot(moy_X[0], moy_Y[0], color=couleur_moy, linestyle='-', linewidth=largeur_moy, label=description_echantillon)
             except:
                 print(moy_X)
@@ -2105,14 +2111,14 @@ nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai d
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG +- 90°.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de l'épaisseur de trait pour une buse de D0.7.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de la surextrusion.txt"
-#{nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/disparité entre deux éprouvettes identique.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur PETG Bleu Francofil.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG avec parametres différents.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette S PETG.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/demonstration logiciel post traitement.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/demonstration logiciel post traitement.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
