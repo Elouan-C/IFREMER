@@ -1,20 +1,3 @@
-
-
-
-"""                                            PARAMETRES D'ENTREE                                                                       """
-"""======================================================================================================================================"""
-Longueur_éprouvette = 100 #mm (distance entre la sortie des mors)
-
-montrer_que_certaines_eprouvettes = [0,1,3,4,5]#[1,3,4,5]#[26] # soit une liste du numéro d'éprouvette, où alors une liste vide [] quand l'on veut toute les eprouvettes
-
-Rp = 0.2 #%
-  
-
-"""======================================================================================================================================"""
-
-
-
-
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import ticker
