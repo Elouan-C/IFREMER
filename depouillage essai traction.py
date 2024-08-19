@@ -975,8 +975,8 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                   ["type éprouvette",
                    "n°échantillon",
                    "nb éprouvette",
-                   "Raideur moyenne K (N/mm)",
-                   "Ecart type K (N/mm)",
+                   "Raideur moyenne K (daN/mm)",
+                   "Ecart type K (daN/mm)",
                    "Force max moyenne (N)",
                    "Ecart type Fmax (N)",
                    "Déplacement à Fmax (mm)",
@@ -1474,7 +1474,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             
         list_export_courbe_moyenne = plot_to_csv(moy_X,moy_Y)
 
-        if force_depla == False:
+        if force_depla == True:
             nom_X = "Déplacement (mm)"
             nom_Y = "Force (kN)"
         else:
@@ -1530,12 +1530,25 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             moyenne_deformation_contrainte_max = statistics.mean(list_def_cnt_max)
             ecart_type_deformation_contrainte_max = statistics.stdev(list_def_cnt_max)
+
+            
+            moyenne_fmax = statistics.mean(list_for_max)
+            ecart_type_fmax = statistics.stdev(list_for_max)
+
+            moyenne_dep_fmax = statistics.mean(list_dep_for_max)
+            ecart_type_dep_fmax = statistics.stdev(list_dep_for_max)
         else:
             moyenne_contrainte_max = list_cnt_max[0]
             ecart_type_contrainte_max = 0
 
             moyenne_deformation_contrainte_max = list_def_cnt_max[0]
             ecart_type_deformation_contrainte_max = 0
+
+            moyenne_fmax = list_for_max[0]
+            ecart_type_fmax = 0
+
+            moyenne_dep_fmax = list_dep_for_max[0]
+            ecart_type_dep_fmax = 0
 
         export_data_echantillon[2]=len(list_cnt_max) #nombre d'éprouvettes utilisé
 
@@ -1611,7 +1624,15 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
 
             if description_ech_pousser:
                 info_sup.append(''.join([r"$\sigma_{max}$  = ",str(round(moyenne_contrainte_max,1))," ±",str(round(2*ecart_type_contrainte_max,1))," MPa"]))
-
+        
+        if force_depla == True: # Force/Déplacements
+            if aff_moy_cnt_max ==True:
+                legende_moyenne = ''.join([r"$\overline{F_{max}}$(",nom_echantillon,") à 95%"])
+                n=2
+                xerr = [ecart_type_dep_fmax*n]# , ecart_type_deformation_contrainte_max*n]
+                yerr = [ecart_type_fmax*n]#, ecart_type_contrainte_max*n]
+                
+                plt.errorbar([moyenne_dep_fmax], [moyenne_fmax], xerr=xerr, yerr=yerr, capsize=3, fmt="o", ecolor = cross_palette[l], color = cross_palette[l],label = legende_moyenne)
         
         # moyenne Rp0.2
         if len(l_rp02) >= 2:
@@ -1700,12 +1721,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             info_sup.append(''.join(["   E    = ",str(round(moyenne_E,1))," ±",str(round(2*ecart_type_E,2))," MPa"]))
         if description_ech_pousser and force_depla == True:
             #info_sup.append( ''.join(["K ∈ [",str(round(moyenne_K-2*ecart_type_K, nb_ar))," ; ",str(round(moyenne_K+2*ecart_type_K, nb_ar)),'] à 95%']) )
-            info_sup.append(''.join(["K = ",str(round(moyenne_K*100,1)),"±",str(round(2*ecart_type_K*100,1))," N/mm"]))
+            info_sup.append(''.join(["K = ",str(round(moyenne_K*100,1)),"±",str(round(2*ecart_type_K*100,1))," daN/mm"]))
             info_sup.append(''.join(["E = ",str(round(moyenne_energie,1)),"±",str(round(ecart_energie,1))," J"]))
             
             
-        export_data_echantillon[3] = moyenne_K*100 #N/mm
-        export_data_echantillon[4] = ecart_type_K*100 #N/mm
+        export_data_echantillon[3] = moyenne_K*100 #daN/mm
+        export_data_echantillon[4] = ecart_type_K*100 #daN/mm
         export_data_echantillon[10] = moyenne_E #MPa
         export_data_echantillon[11] = ecart_type_E #MPa
         export_data_echantillon[16]= moyenne_rp02 #MPa
@@ -2116,52 +2137,4 @@ depouiller_essais_traction_simple(nom_csv,para)
 #combiner_plusieurs_échantillons(nom_csv,"C:/Users/ecreach/Desktop/test.csv")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-
-parametres=['montrer n° eprouvette', 0,
-            'Deplacer les deformation en 0', True,
-            'Rp', 0.2,
-            'montrer_que_certaines_eprouvettes', [[],[],[],[],[],[],[]],
-            'Longueur_éprouvette (obsolete)', 115,
-            'debug',False,
-            'montrer dériver',False,
-            'Force/déplacement',False,
-            'afficher contrainte max',True,
-            'afficher Rp02',False,
-            'mode affichage courbe [1,2,3,4]',3,
-            'mettre flèches',False,
-            'nom graphique','Essai de traction sur Filaments PETG',
-            'base arondi',5,
-            'afficher moyenne contrainte max',True,
-            'montrer n° échantillon', False,
-            'montrer description échantillon',True,
-            'Description échantillon',['PETG Vierge Froncofil',
-                                       'PETG Bleu    Francofil',
-                                       'PETG Vierge Daily sun'],
-            'afficher courbe moyenne',True,]
-
-"""
 
