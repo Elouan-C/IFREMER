@@ -1845,11 +1845,15 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
         if montrer_description_échantillon:
             if description_ech_pousser:
                 description_echantillon = description_echantillon.replace("%", "\%")
-
+                description_echantillon = description_echantillon.replace(" ", "\ ")
+                print("description_echantillon:",description_echantillon)
                 description_echantillon = r'$\mathbf{'+description_echantillon+'}$' #on met en gras le nom de l'échantillon
+                print("description_echantillon:",description_echantillon)
 
                 description_echantillon = [description_echantillon] + info_sup
+                print("description_echantillon:",description_echantillon)
                 description_echantillon = '\n'.join(description_echantillon)
+                print("description_echantillon:",description_echantillon)
 
             try:#r'$\mathbf{test}$'
                 
@@ -2109,13 +2113,13 @@ parametres=['montrer n° eprouvette', 1,
 #"""
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Vierge francofil (11,12,14).txt"
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG +- 90°.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de l'épaisseur de trait pour une buse de D0.7.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de la surextrusion.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/disparité entre deux éprouvettes identique.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
