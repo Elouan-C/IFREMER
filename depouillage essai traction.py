@@ -1388,7 +1388,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                     
 
                     if pas_touche == False:
-                        list_E.append( E_inflection)
+                        list_E.append( E_inflection*100) # le *100 est pour compensser les déformation qui sont en %
                     else:
                         list_E.append( E_machine )
                     if debug:
@@ -2122,7 +2122,7 @@ nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai d
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/disparité entre deux éprouvettes identique.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur PETG Bleu Francofil.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG avec parametres différents.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette S PETG.txt"
