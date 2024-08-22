@@ -1068,7 +1068,7 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             largeur = 1
             
         elif mode_affichage_courbe == 2:
-            Palette = [['b'], ['crimson'],['tab:green'],["tab:brown"]]
+            #Palette = [['b'], ['crimson'],['tab:green'],["tab:brown"]]
             a = 0.2 #alpha chanel, (transparence)
             #Palette =     [[(0, 0, 1,a)], [(220/255, 20/255, 60/255,a)],[(44/255, 160/255, 44/255,a)],[(243/255, 59/255, 238/255,a)],[(0,0,0,a)],[(222/255, 255/255, 0/255,a)]] #RGB avec valeurs entre 0 et 1
             #Palette_moy = [[(0, 0, 1,1)], [(220/255, 20/255, 60/255,1)],[(44/255, 160/255, 44/255,1)],[(243/255, 59/255, 238/255,1)],[(0,0,0,1)],[(222/255, 255/255, 0/255,1)]]
@@ -1081,10 +1081,12 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
             largeur = 0.7
             
         elif mode_affichage_courbe == 3:
-            Palette = [['b'], ['crimson'],['tab:green'],["tab:brown"]]
+            #Palette = [['b'], ['crimson'],['tab:green'],["tab:brown"]]
+            Palette = [[(0, 87/255, 233/255,1)], [(225/255, 24/255, 69/255,1)],[(44/255, 160/255, 44/255,1)],[(0,0,0,1)],[(242/255, 202/255, 25/255,1)],[(255/255, 0/255, 189/255,1)],[(137/255, 49/255, 239/255,1)],[(255/255, 107/255, 0/255,1)],[(0/255, 200/255, 200/255,1)],[(120/255, 133/255, 43/255,1)]]
+
             cross_Palette = Palette
             
-            style = 'dotted'
+            style = '-'
             largeur = 0.01
             
         elif mode_affichage_courbe == 4:
@@ -1428,31 +1430,32 @@ def depouiller_essais_traction_simple(Nom_csv, Parametres):
                         
                     
                     #AFFICHAGE DE LA COURBE LIER A L'EPROUVETTE
-                    if (nom_echantillon_déja_montrer==False) and mode_affichage_courbe != 3:
-                        nom = []
-                        if montrer_N_échantillon == 1:
-                            nom.append( ''.join(['ech n°',nom_echantillon]) )
-                        """
-                        if montrer_description_échantillon:
-                            nom.append( ''.join(['',description_echantillon]))
-                        """
+                    if True:
+                        if (nom_echantillon_déja_montrer==False) and mode_affichage_courbe != 3:
+                            nom = []
+                            if montrer_N_échantillon == 1:
+                                nom.append( ''.join(['ech n°',nom_echantillon]) )
+                            """
+                            if montrer_description_échantillon:
+                                nom.append( ''.join(['',description_echantillon]))
+                            """
 
-                        nom = ', '.join(nom)
-                        
-                        if montrer_N_échantillon :#or montrer_description_échantillon:
-                            nom_echantillon_déja_montrer = True
-                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
-                        montrer_description_échantillon
+                            nom = ', '.join(nom)
                             
-                    if montrer_N_eprouvette==1:
-                        nom = ''.join([nom_echantillon,'-',str(ep+1)])
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
-                    elif montrer_N_eprouvette==2:
-                        ligne_entete = 3+ep
-                        nom = donnee[ligne_entete][1]
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
-                    else:
-                        plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur)
+                            if montrer_N_échantillon :#or montrer_description_échantillon:
+                                nom_echantillon_déja_montrer = True
+                                plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
+                            montrer_description_échantillon
+                                
+                        if montrer_N_eprouvette==1:
+                            nom = ''.join([nom_echantillon,'-',str(ep+1)])
+                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
+                        elif montrer_N_eprouvette==2:
+                            ligne_entete = 3+ep
+                            nom = donnee[ligne_entete][1]
+                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur ,label=(nom))
+                        else:
+                            plt.plot(X, Y, color=couleur, linestyle=style, linewidth=largeur)
 
                     
                     #on met dans le rapport les élément de l'entete qui nous interesse
@@ -2115,18 +2118,22 @@ nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai d
 nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PETG.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Eprouvette ISO527 PETG Bleu.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/temp.txt"
-#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
+nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG2.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG +- 90°.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de l'épaisseur de trait pour une buse de D0.7.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte de la surextrusion.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du infill overlap.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/disparité entre deux éprouvettes identique.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG Noir.txt"
-nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Filaments PLA.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur PETG Bleu Francofil.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette courbe PETG avec parametres différents.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur Eprouvette S PETG.txt"
 #nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/demonstration logiciel post traitement.txt"
+#nom_para = "C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Essai de traction sur PLA blanc Francofil ISO527.txt"
+#nom_para ="C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Impacte du ventilateu.txt"
+#nom_para ="C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/dépouillage.txt"
+#nom_para ="C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/Comparaison PETG-PLA.txt"
 
 nom_csv, parametres=lire_parametres(nom_para)
 #print("nom_csv",nom_csv)
