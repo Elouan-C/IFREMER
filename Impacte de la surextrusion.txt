@@ -1,0 +1,26 @@
+C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-31-010824.csv
+C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-32-010824.csv
+C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-30-010824.csv
+C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-33-010824.csv
+C:/Users/ecreach/Documents/PFE Caratérisation impression 3D/PETG-34-010824.csv
+
+montrer n° eprouvette: 0
+Deplacer les deformation en 0: True
+Rp: 0.2
+montrer_que_certaines_eprouvettes: [];[];[];[1,2,3,6];[];[];[]
+Longueur_éprouvette (obsolete): 115.0
+debug:False
+montrer dériver:False
+Force/déplacement:True
+afficher contrainte max:False
+afficher Rp02:False
+mode affichage courbe [1,2,3,4]:2
+mettre flèches:False
+nom graphique:Essai de traction sur Eprouvette courbe PETG, Buse 0.7mm\nVariation de la sur-extrusion du remplissage
+base arondi:5
+afficher moyenne contrainte max:False
+montrer n° échantillon: False
+montrer description échantillon:True
+Description échantillon:100%¤;110%¤;120%¤;130%¤;140%¤
+afficher courbe moyenne:True
+recallage par point d'infelction:True
